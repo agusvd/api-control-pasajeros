@@ -70,7 +70,7 @@ router.put('/vehiculos/:id_vehiculo', (req, res) => {
     });
 })
 
-// eliminar vehiculo
+// eliminar vehiculo a
 
 router.delete('/vehiculos/:id_vehiculo', (req, res) => {
     const { id_vehiculo } = req.params;
