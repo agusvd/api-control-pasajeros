@@ -27,9 +27,21 @@ router.get('/users/admin/:id_admin', (req, res) => {
     });
 })
 
-// obtener usuario conductor
+// obtener usuario conductor 
 router.get('/users/conductor', (req, res) => {
     mysqlConnection.query('SELECT * FROM conductores', (error, rows) => {
+        if (!error) {
+            res.json(rows);
+        } else {
+            console.log(error);
+        }
+    });
+})
+
+// obtener conductor por id
+router.get('/users/conductor/:id_conductor', (req, res) => {
+    const { id_conductor } = req.params;
+    mysqlConnection.query('SELECT * FROM conductores WHERE id_conductor = ?', [id_conductor], (error, rows) => {
         if (!error) {
             res.json(rows);
         } else {

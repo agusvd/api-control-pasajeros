@@ -108,7 +108,7 @@ router.post('/login', async (req, res) => {
                                 res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
                             }
                         } else {
-                            res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
+                            res.status(401).json({ message: 'El usuario no existe' });
                         }
                     } else {
                         console.log(error);

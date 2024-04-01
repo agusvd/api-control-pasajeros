@@ -4,7 +4,6 @@ import mysqlConnection from '../database/db.js';
 const router = express.Router();
 
 // obtener los vehiculos
-
 router.get('/vehiculos', (req, res) => {
     mysqlConnection.query('SELECT * FROM vehiculos', (error, rows) => {
         if (!error) {
@@ -28,7 +27,6 @@ router.get('/vehiculos/:id_vehiculo', (req, res) => {
 })
 
 // crear vehiculos
-
 router.post('/vehiculos', (req, res) => {
     const { nombre, patente, capacidad } = req.body;
     const newVehiculo = {
@@ -49,7 +47,6 @@ router.post('/vehiculos', (req, res) => {
 })
 
 // editar un vehiculo
-
 router.put('/vehiculos/:id_vehiculo', (req, res) => {
     const { nombre, patente, capacidad } = req.body;
     const { id_vehiculo } = req.params;
@@ -71,7 +68,6 @@ router.put('/vehiculos/:id_vehiculo', (req, res) => {
 })
 
 // eliminar vehiculo a
-
 router.delete('/vehiculos/:id_vehiculo', (req, res) => {
     const { id_vehiculo } = req.params;
     mysqlConnection.query('DELETE FROM vehiculos WHERE id_vehiculo = ?', [id_vehiculo], (error, result) => {
