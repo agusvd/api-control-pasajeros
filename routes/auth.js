@@ -58,6 +58,33 @@ router.post('/register/conductor', async (req, res) => {
     }
 });
 
+// editar conductor
+router.put('/edit/conductor/:id', async (req, res) => {
+    try {
+        const hashedPassword = bcrypt.hashSync(req.body.password, 10); // Cambiado a bcrypt.hashSync
+        const editUser = {
+            nombre_completo: req.body.nombre_completo,
+            telefono: req.body.telefono,
+            id_vehiculo: req.body.id_vehiculo,
+            usuario: req.body.usuario,
+            password: hashedPassword
+        };
+
+        const query = 'UPDATE conductores SET ? WHERE id_conductor = ?';
+        mysqlConnection.query(query, [editUser, req.params.id], (error, result) => { // Cambiado de sql a query
+            if (error) {
+                console.error('Error al editar conductor:', error);
+                res.status(500).json({ message: 'Error al editar conductor' });
+            } else {
+                res.status(201).json({ message: 'Conductor editado correctamente' });
+            }
+        });
+    } catch (error) {
+        console.error('Error al editar conductor:', error);
+        res.status(500).json({ message: 'Error al editar conductor' });
+    }
+});
+
 
 // Login de usuario
 router.post('/login', async (req, res) => {
