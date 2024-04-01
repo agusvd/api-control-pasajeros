@@ -9,6 +9,7 @@ import TrabajadoresRouter from './routes/trabajadores.js';
 import VehiculosRouter from './routes/vehiculos.js';
 import ViajesRouter from './routes/viajes.js';
 import ValoresRouter from './routes/valores.js';
+import TrasladosRouter from './routes/traslados.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ app.use('/api/dashboard', TrabajadoresRouter);
 app.use('/api/dashboard', VehiculosRouter);
 app.use('/api/chofer', ViajesRouter);
 app.use('/api/dashboard', ValoresRouter);
+app.use('/api/dashboard', TrasladosRouter);
 
 app.listen(PORT, () => {
     console.log(`Servidor iniciado en el puerto ${PORT}`);
