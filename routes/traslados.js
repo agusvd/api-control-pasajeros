@@ -3,48 +3,39 @@ import mysqlConnection from '../database/db.js'
 
 const router = express.Router()
 
-// Obtener todos los traslados con sus trabajadores asociados
-router.get('/traslados', (req, res) => {
-    mysqlConnection.query('SELECT * FROM traslados', (error, traslados) => {
-        if (error) {
-            console.error('Error al obtener los traslados:', error);
-            res.status(500).json({ message: 'Error al obtener los traslados' });
-            return;
-        }
-
-        // Obtener los trabajadores asociados a cada traslado
-        Promise.all(traslados.map(traslado => {
-            return new Promise((resolve, reject) => {
-                mysqlConnection.query('SELECT id_trabajador FROM trabajadores_por_traslado WHERE id_traslado = ?', [traslado.id_traslado], (error, trabajadores) => {
-                    if (error) {
-                        console.error('Error al obtener los trabajadores del traslado:', error);
-                        reject(error);
-                    } else {
-                        traslado.trabajadores = trabajadores.map(t => t.id_trabajador);
-                        resolve(traslado);
-                    }
-                });
-            });
-        })).then(trasladosConTrabajadores => {
-            res.json(trasladosConTrabajadores);
-        }).catch(error => {
-            res.status(500).json({ message: 'Error al obtener los traslados con trabajadores' });
-        });
-    });
-});
 
 
 // Crear un nuevo traslado
 router.post('/traslados', (req, res) => {
-    const { fecha, id_conductor, trabajadores, valor_por_persona, tipo_viaje, comentario } = req.body;
+    const { fecha, conductor, vehiculo, tipo_viaje, trabajadores, asistencias, comentarios } = req.body;
     const formattedFecha = new Date(fecha).toISOString().slice(0, 10);
+
+    console.log('fecha:', formattedFecha);
+    console.log('conductor:', conductor);
+    console.log('vehiculo:', vehiculo);
+    console.log('tipo_viaje:', tipo_viaje);
+    console.log('trabajadores:', trabajadores);
+    console.log('asistencias:', asistencias);
+    console.log('comentarios:', comentarios);
+
+    var valorPorPersona = 0;
+    const personas = trabajadores.length;
+    const valorTotalVan = 53000;
+    const valorTotalTaxi = 15000;
+
+    if (vehiculo.includes('van')) {
+        valorPorPersona = valorTotalVan / personas;
+    }
+    if (vehiculo.includes('taxi')) { 
+        valorPorPersona =  valorTotalTaxi / personas;
+    }
 
     const newTraslado = {
         fecha: formattedFecha,
-        id_conductor,
-        valor_por_persona,
+        nombre_conductor: conductor,
+        vehiculo,
         tipo_viaje,
-        comentario
+        valor_por_persona: valorPorPersona,
     };
 
     mysqlConnection.query('INSERT INTO traslados SET ?', newTraslado, (error, result) => {
@@ -53,12 +44,25 @@ router.post('/traslados', (req, res) => {
             res.status(500).json({ message: 'Error al registrar traslado' });
         } else {
             const id_traslado = result.insertId;
-            // Insertar los trabajadores por traslado
-            const values = trabajadores.map(id_trabajador => [id_traslado, id_trabajador]);
-            mysqlConnection.query('INSERT INTO trabajadores_por_traslado (id_traslado, id_trabajador) VALUES ?', [values], (error, result) => {
+
+            const asistenciaYComentarios = trabajadores.map(trabajador => {
+                const id_trabajador = trabajador;
+                const asistencia = asistencias[id_trabajador];
+                const comentario = comentarios[id_trabajador];
+
+                return {
+                    id_traslado,
+                    id_trabajador,
+                    fecha: formattedFecha, // Agregar la fecha aquí
+                    asistencia,
+                    comentario
+                };
+            });
+
+            mysqlConnection.query('INSERT INTO asistencia (id_traslado, id_trabajador, fecha, asistencia, comentario) VALUES ?', [asistenciaYComentarios.map(({ id_trabajador, fecha, asistencia, comentario }) => [id_traslado, id_trabajador, fecha, asistencia, comentario])], (error, result) => {
                 if (error) {
-                    console.error('Error al registrar trabajadores por traslado:', error);
-                    res.status(500).json({ message: 'Error al registrar trabajadores por traslado' });
+                    console.error('Error al registrar asistencias y comentarios:', error);
+                    res.status(500).json({ message: 'Error al registrar asistencias y comentarios' });
                 } else {
                     res.status(201).json({ message: 'Traslado registrado correctamente' });
                 }
@@ -66,6 +70,8 @@ router.post('/traslados', (req, res) => {
         }
     });
 });
+
+
 
 // eliminar traslado
 router.delete('/traslados/:id_traslado', (req, res) => {
