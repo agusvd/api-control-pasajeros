@@ -14,6 +14,8 @@ router.get('/trabajadores', (req, res) => {
     });
 })
 
+
+
 // crear trabajadores
 router.post('/trabajadores', (req, res) => {
     const { nombre_completo, direccion, telefono, transporte, tipo_empresa, estado, viaja_ida, viaja_vuelta } = req.body;
