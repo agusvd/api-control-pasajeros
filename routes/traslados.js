@@ -3,6 +3,93 @@ import mysqlConnection from '../database/db.js'
 
 const router = express.Router()
 
+// Obtener todos los traslados con sus asistencias y comentarios
+router.get('/traslados', (req, res) => {
+    mysqlConnection.query('SELECT * FROM traslados', (error, traslados) => {
+        if (error) {
+            console.error('Error al obtener traslados:', error);
+            res.status(500).json({ message: 'Error al obtener traslados' });
+        } else {
+            const trasladosPromises = traslados.map(traslado => {
+                return new Promise((resolve, reject) => {
+                    mysqlConnection.query('SELECT * FROM asistencia WHERE id_traslado = ?', [traslado.id_traslado], (error, asistencias) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve({ ...traslado, asistencias });
+                        }
+                    });
+                });
+            });
+
+            Promise.all(trasladosPromises).then(traslados => {
+                res.json(traslados);
+            }).catch(error => {
+                console.error('Error al obtener asistencias:', error);
+                res.status(500).json({ message: 'Error al obtener asistencias' });
+            });
+        }
+    });
+});
+
+// obtener todos los traslados con sus asistencias y comentarios donde el tipo de viaje sea igual a 'ida'
+router.get('/traslados/ida', (req, res) => {
+    mysqlConnection.query('SELECT * FROM traslados WHERE tipo_viaje = "ida"', (error, traslados) => {
+        if (error) {
+            console.error('Error al obtener traslados:', error);
+            res.status(500).json({ message: 'Error al obtener traslados' });
+        } else {
+            const trasladosPromises = traslados.map(traslado => {
+                return new Promise((resolve, reject) => {
+                    mysqlConnection.query('SELECT * FROM asistencia WHERE id_traslado = ?', [traslado.id_traslado], (error, asistencias) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve({ ...traslado, asistencias });
+                        }
+                    });
+                });
+            });
+
+            Promise.all(trasladosPromises).then(traslados => {
+                res.json(traslados);
+            }).catch(error => {
+                console.error('Error al obtener asistencias:', error);
+                res.status(500).json({ message: 'Error al obtener asistencias' });
+            });
+        }
+    });
+})
+
+// obtener todos los traslados con sus asistencias y comentarios donde el tipo de viaje sea igual a 'vuelta'
+router.get('/traslados/vuelta', (req, res) => {
+    mysqlConnection.query('SELECT * FROM traslados WHERE tipo_viaje = "vuelta"', (error, traslados) => {
+        if (error) {
+            console.error('Error al obtener traslados:', error);
+            res.status(500).json({ message: 'Error al obtener traslados' });
+        } else {
+            const trasladosPromises = traslados.map(traslado => {
+                return new Promise((resolve, reject) => {
+                    mysqlConnection.query('SELECT * FROM asistencia WHERE id_traslado = ?', [traslado.id_traslado], (error, asistencias) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve({ ...traslado, asistencias });
+                        }
+                    });
+                });
+            });
+
+            Promise.all(trasladosPromises).then(traslados => {
+                res.json(traslados);
+            }).catch(error => {
+                console.error('Error al obtener asistencias:', error);
+                res.status(500).json({ message: 'Error al obtener asistencias' });
+            });
+        }
+    });
+})
+
 
 
 // Crear un nuevo traslado
@@ -64,24 +151,30 @@ router.post('/traslados', (req, res) => {
                     console.error('Error al registrar asistencias y comentarios:', error);
                     res.status(500).json({ message: 'Error al registrar asistencias y comentarios' });
                 } else {
-                    res.status(201).json({ message: 'Traslado registrado correctamente' });
+                    res.status(201).json({ message: 'Lista enviada correctamente' });
                 }
             });
         }
     });
 });
 
+// eliminar traslado con su asistencia y comentarios
+router.delete('/traslados/:id', (req, res) => {
+    const { id } = req.params;
 
-
-// eliminar traslado
-router.delete('/traslados/:id_traslado', (req, res) => {
-    const { id_traslado } = req.params;
-    mysqlConnection.query('DELETE FROM traslados WHERE id_traslado = ?', [id_traslado], (error, result) => {
+    mysqlConnection.query('DELETE FROM asistencia WHERE id_traslado = ?', [id], (error, result) => {
         if (error) {
-            console.error('Error al eliminar traslado:', error);
-            res.status(500).json({ message: 'Error al eliminar traslado' });
+            console.error('Error al eliminar asistencias:', error);
+            res.status(500).json({ message: 'Error al eliminar asistencias' });
         } else {
-            res.json({ message: 'Traslado eliminado correctamente' });
+            mysqlConnection.query('DELETE FROM traslados WHERE id_traslado = ?', [id], (error, result) => {
+                if (error) {
+                    console.error('Error al eliminar traslado:', error);
+                    res.status(500).json({ message: 'Error al eliminar traslado' });
+                } else {
+                    res.json({ message: 'Traslado eliminado correctamente' });
+                }
+            });
         }
     });
 });
