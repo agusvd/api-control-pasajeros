@@ -121,79 +121,90 @@ router.post('/traslados', (req, res) => {
     const formattedFecha = new Date(fecha).toISOString().slice(0, 10);
     const fechaActual = new Date().toISOString().slice(0, 10);
 
-    console.log('fecha:', formattedFecha);
-    console.log('conductor:', conductor);
-    console.log('vehiculo:', vehiculo);
-    console.log('tipo_viaje:', tipo_viaje);
-    console.log('trabajadores:', trabajadores);
-    console.log('asistencias:', asistencias);
-    console.log('comentarios:', comentarios);
-
+    // obtener el valor de la van y taxi de la base de datos
     var valorPorPersona = 0;
     const personas = trabajadores.length;
-    const valorTotalVan = 53000;
-    const valorTotalTaxi = 15000;
 
     if (vehiculo.includes('van')) {
-        valorPorPersona = valorTotalVan / personas;
+        mysqlConnection.query('SELECT * FROM valorvan WHERE id = 1', (error, valorVan) => {
+            if (error) {
+                console.error('Error al obtener valor van:', error);
+                res.status(500).json({ message: 'Error al obtener valor van' });
+            } else {
+                const valor = valorVan[0];
+                valorPorPersona = valor.valor / personas; // Aquí cambia a valor.valor
+                continuarProceso();
+            }
+        });
     }
     if (vehiculo.includes('taxi')) {
-        valorPorPersona = valorTotalTaxi / personas;
+        mysqlConnection.query('SELECT * FROM valortaxi WHERE id = 1', (error, valorTaxi) => {
+            if (error) {
+                console.error('Error al obtener valor taxi:', error);
+                res.status(500).json({ message: 'Error al obtener valor taxi' });
+            } else {
+                const valor = valorTaxi[0];
+                valorPorPersona = valor.valor / personas; // Aquí cambia a valor.valor
+                continuarProceso();
+            }
+        });
     }
 
-    // Consultar la base de datos para verificar la existencia de traslados del mismo tipo
-    mysqlConnection.query('SELECT * FROM traslados WHERE fecha = ? AND nombre_conductor = ? AND vehiculo = ? AND tipo_viaje = ?', [formattedFecha, conductor, vehiculo, tipo_viaje], (error, results) => {
-        if (error) {
-            console.error('Error al verificar traslados existentes:', error);
-            res.status(500).json({ message: 'Error al verificar traslados existentes' });
-        } else {
-            if (results.length > 0) {
-                // Ya existe un traslado del mismo tipo para el mismo conductor, vehículo y fecha
-                res.status(400).json({ message: `Ya existe un traslado de ${tipo_viaje} para el conductor ${conductor}, vehículo ${vehiculo} y fecha ${formattedFecha}` });
+    function continuarProceso() {
+        // Consultar la base de datos para verificar la existencia de traslados del mismo tipo
+        mysqlConnection.query('SELECT * FROM traslados WHERE fecha = ? AND nombre_conductor = ? AND vehiculo = ? AND tipo_viaje = ?', [formattedFecha, conductor, vehiculo, tipo_viaje], (error, results) => {
+            if (error) {
+                console.error('Error al verificar traslados existentes:', error);
+                res.status(500).json({ message: 'Error al verificar traslados existentes' });
             } else {
-                // No existe un traslado del mismo tipo, proceder con la inserción
-                const newTraslado = {
-                    fecha: formattedFecha,
-                    nombre_conductor: conductor,
-                    vehiculo,
-                    tipo_viaje,
-                    valor_por_persona: valorPorPersona,
-                };
+                if (results.length > 0) {
+                    // Ya existe un traslado del mismo tipo para el mismo conductor, vehículo y fecha
+                    res.status(400).json({ message: `Ya existe un traslado de ${tipo_viaje} para el conductor ${conductor}, vehículo ${vehiculo} y fecha ${formattedFecha}` });
+                } else {
+                    // No existe un traslado del mismo tipo, proceder con la inserción
+                    const newTraslado = {
+                        fecha: formattedFecha,
+                        nombre_conductor: conductor,
+                        vehiculo,
+                        tipo_viaje,
+                        valor_por_persona: valorPorPersona,
+                    };
 
-                mysqlConnection.query('INSERT INTO traslados SET ?', newTraslado, (error, result) => {
-                    if (error) {
-                        console.error('Error al registrar traslado:', error);
-                        res.status(500).json({ message: 'Error al registrar traslado' });
-                    } else {
-                        const id_traslado = result.insertId;
+                    mysqlConnection.query('INSERT INTO traslados SET ?', newTraslado, (error, result) => {
+                        if (error) {
+                            console.error('Error al registrar traslado:', error);
+                            res.status(500).json({ message: 'Error al registrar traslado' });
+                        } else {
+                            const id_traslado = result.insertId;
 
-                        const asistenciaYComentarios = trabajadores.map(trabajador => {
-                            const id_trabajador = trabajador;
-                            const asistencia = asistencias[id_trabajador];
-                            const comentario = comentarios[id_trabajador];
+                            const asistenciaYComentarios = trabajadores.map(trabajador => {
+                                const id_trabajador = trabajador;
+                                const asistencia = asistencias[id_trabajador];
+                                const comentario = comentarios[id_trabajador];
 
-                            return {
-                                id_traslado,
-                                id_trabajador,
-                                fecha: formattedFecha, // Agregar la fecha aquí
-                                asistencia,
-                                comentario
-                            };
-                        });
+                                return {
+                                    id_traslado,
+                                    id_trabajador,
+                                    fecha: formattedFecha, // Agregar la fecha aquí
+                                    asistencia,
+                                    comentario
+                                };
+                            });
 
-                        mysqlConnection.query('INSERT INTO asistencia (id_traslado, id_trabajador, fecha, asistencia, comentario) VALUES ?', [asistenciaYComentarios.map(({ id_trabajador, fecha, asistencia, comentario }) => [id_traslado, id_trabajador, fecha, asistencia, comentario])], (error, result) => {
-                            if (error) {
-                                console.error('Error al registrar asistencias y comentarios:', error);
-                                res.status(500).json({ message: 'Error al registrar asistencias y comentarios' });
-                            } else {
-                                res.status(201).json({ message: 'Lista enviada correctamente' });
-                            }
-                        });
-                    }
-                });
+                            mysqlConnection.query('INSERT INTO asistencia (id_traslado, id_trabajador, fecha, asistencia, comentario) VALUES ?', [asistenciaYComentarios.map(({ id_trabajador, fecha, asistencia, comentario }) => [id_traslado, id_trabajador, fecha, asistencia, comentario])], (error, result) => {
+                                if (error) {
+                                    console.error('Error al registrar asistencias y comentarios:', error);
+                                    res.status(500).json({ message: 'Error al registrar asistencias y comentarios' });
+                                } else {
+                                    res.status(201).json({ message: 'Lista enviada correctamente' });
+                                }
+                            });
+                        }
+                    });
+                }
             }
-        }
-    });
+        });
+    }
 });
 
 
