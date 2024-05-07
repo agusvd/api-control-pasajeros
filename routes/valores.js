@@ -1,12 +1,12 @@
 import express from 'express'
-import mysqlConnection from '../database/db.js'
+import sql from '../database/db.js'
 
 const router = express.Router()
 
 // obtener valor taxi id 1
 router.get('/valor-taxi/:id', (req, res) => {
     const { id } = req.params
-    mysqlConnection.query('SELECT * FROM valortaxi WHERE id = ?', [id], (error, rows) => {
+    sql.query('SELECT * FROM valortaxi WHERE id = ?', [id], (error, rows) => {
         if (!error) {
             res.json(rows)
         } else {
@@ -18,7 +18,7 @@ router.get('/valor-taxi/:id', (req, res) => {
 // obtener valor van id 1
 router.get('/valor-van/:id', (req, res) => {
     const { id } = req.params
-    mysqlConnection.query('SELECT * FROM valorvan WHERE id = ?', [id], (error, rows) => {
+    sql.query('SELECT * FROM valorvan WHERE id = ?', [id], (error, rows) => {
         if (!error) {
             res.json(rows)
         } else {
@@ -35,7 +35,7 @@ router.post('/valor-taxi', (req, res) => {
     }
 
     const query = 'INSERT INTO valortaxi SET ?'
-    mysqlConnection.query(query, newValor, (error, result) => {
+    sql.query(query, newValor, (error, result) => {
         if (error) {
             console.error('Error al registrar valor:', error)
             res.status(500).json({ message: 'Error al registrar valor' })
@@ -53,7 +53,7 @@ router.post('/valor-van', (req, res) => {
     }
 
     const query = 'INSERT INTO valorvan SET ?'
-    mysqlConnection.query(query, newValor, (error, result) => {
+    sql.query(query, newValor, (error, result) => {
         if (error) {
             console.error('Error al registrar valor:', error)
             res.status(500).json({ message: 'Error al registrar valor' })
@@ -72,7 +72,7 @@ router.put('/valor-taxi/:id', (req, res) => {
     }
 
     const query = 'UPDATE valortaxi SET ? WHERE id = ?'
-    mysqlConnection.query(query, [updateValor, id], (error, result) => {
+    sql.query(query, [updateValor, id], (error, result) => {
         if (error) {
             console.error('Error al actualizar valor:', error)
             res.status(500).json({ message: 'Error al actualizar valor' })
@@ -91,7 +91,7 @@ router.put('/valor-van/:id', (req, res) => {
     }
 
     const query = 'UPDATE valorvan SET ? WHERE id = ?'
-    mysqlConnection.query(query, [updateValor, id], (error, result) => {
+    sql.query(query, [updateValor, id], (error, result) => {
         if (error) {
             console.error('Error al actualizar valor:', error)
             res.status(500).json({ message: 'Error al actualizar valor' })

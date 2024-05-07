@@ -1,18 +1,18 @@
 import express from 'express'
-import mysqlConnection from '../database/db.js'
+import sql from '../database/db.js'
 
 const router = express.Router()
 
 // Obtener todos los traslados con sus asistencias y comentarios
 router.get('/traslados', (req, res) => {
-    mysqlConnection.query('SELECT * FROM traslados', (error, traslados) => {
+    sql.query('SELECT * FROM traslados', (error, traslados) => {
         if (error) {
             console.error('Error al obtener traslados:', error);
             res.status(500).json({ message: 'Error al obtener traslados' });
         } else {
             const trasladosPromises = traslados.map(traslado => {
                 return new Promise((resolve, reject) => {
-                    mysqlConnection.query('SELECT * FROM asistencia WHERE id_traslado = ?', [traslado.id_traslado], (error, asistencias) => {
+                    sql.query('SELECT * FROM asistencia WHERE id_traslado = ?', [traslado.id_traslado], (error, asistencias) => {
                         if (error) {
                             reject(error);
                         } else {
@@ -59,7 +59,46 @@ router.get('/asistencia', (req, res) => {
         params.push(`%${tipoDestino}%`);
     }
 
-    mysqlConnection.query(query, params, (error, asistencia) => {
+    sql.query(query, params, (error, asistencia) => {
+        if (error) {
+            console.error('Error al obtener asistencia:', error);
+            res.status(500).json({ message: 'Error al obtener asistencia' });
+        } else {
+            res.json(asistencia);
+        }
+    });
+});
+
+router.get('/asistencia-fecha', (req, res) => {
+    const { fechaInicial, fechaFinal, nombre, tipoDestino } = req.query;
+    console.log('Fecha inicial:', fechaInicial);
+    console.log('Fecha final:', fechaFinal);
+
+    let query = `
+        SELECT a.*, t.nombre_completo 
+        FROM asistencia a 
+        JOIN trabajadores t ON a.id_trabajador = t.id_trabajador 
+        JOIN traslados tr ON a.id_traslado = tr.id_traslado 
+        WHERE 1`;
+
+    const params = [];
+
+    if (fechaInicial && fechaFinal) {
+        query += ' AND a.fecha BETWEEN ? AND ?';
+        params.push(fechaInicial, fechaFinal);
+    }
+
+    if (nombre) {
+        query += ' AND t.nombre_completo LIKE ?';
+        params.push(`%${nombre}%`);
+    }
+
+    if (tipoDestino) {
+        query += ' AND tr.tipo_viaje LIKE ?';
+        params.push(`%${tipoDestino}%`);
+    }
+
+    sql.query(query, params, (error, asistencia) => {
         if (error) {
             console.error('Error al obtener asistencia:', error);
             res.status(500).json({ message: 'Error al obtener asistencia' });
@@ -83,7 +122,7 @@ router.get('/asistencia-hoy', (req, res) => {
         JOIN vehiculos v ON c.id_vehiculo = v.id_vehiculo
         WHERE t.tipo_viaje = 'ida' AND DATE(t.fecha) = ?`;
 
-    mysqlConnection.query(queryIda, [fechaActual], (errorIda, trasladosIda) => {
+    sql.query(queryIda, [fechaActual], (errorIda, trasladosIda) => {
         if (errorIda) {
             console.error('Error al obtener traslados de ida:', errorIda);
             res.status(500).json({ message: 'Error al obtener traslados de ida' });
@@ -98,12 +137,11 @@ router.get('/asistencia-hoy', (req, res) => {
                 JOIN vehiculos v ON c.id_vehiculo = v.id_vehiculo
                 WHERE t.tipo_viaje = 'vuelta' AND DATE(t.fecha) = ?`;
 
-            mysqlConnection.query(queryVuelta, [fechaActual], (errorVuelta, trasladosVuelta) => {
+            sql.query(queryVuelta, [fechaActual], (errorVuelta, trasladosVuelta) => {
                 if (errorVuelta) {
                     console.error('Error al obtener traslados de vuelta:', errorVuelta);
                     res.status(500).json({ message: 'Error al obtener traslados de vuelta' });
                 } else {
-                    // Formatear los datos según tus requisitos
                     const asistenciaHoy = {
                         trasladosIda,
                         trasladosVuelta
@@ -126,7 +164,7 @@ router.post('/traslados', (req, res) => {
     const personas = trabajadores.length;
 
     if (vehiculo.includes('van')) {
-        mysqlConnection.query('SELECT * FROM valorvan WHERE id = 1', (error, valorVan) => {
+        sql.query('SELECT * FROM valorvan WHERE id = 1', (error, valorVan) => {
             if (error) {
                 console.error('Error al obtener valor van:', error);
                 res.status(500).json({ message: 'Error al obtener valor van' });
@@ -138,7 +176,7 @@ router.post('/traslados', (req, res) => {
         });
     }
     if (vehiculo.includes('taxi')) {
-        mysqlConnection.query('SELECT * FROM valortaxi WHERE id = 1', (error, valorTaxi) => {
+        sql.query('SELECT * FROM valortaxi WHERE id = 1', (error, valorTaxi) => {
             if (error) {
                 console.error('Error al obtener valor taxi:', error);
                 res.status(500).json({ message: 'Error al obtener valor taxi' });
@@ -152,7 +190,7 @@ router.post('/traslados', (req, res) => {
 
     function continuarProceso() {
         // Consultar la base de datos para verificar la existencia de traslados del mismo tipo
-        mysqlConnection.query('SELECT * FROM traslados WHERE fecha = ? AND nombre_conductor = ? AND vehiculo = ? AND tipo_viaje = ?', [formattedFecha, conductor, vehiculo, tipo_viaje], (error, results) => {
+        sql.query('SELECT * FROM traslados WHERE fecha = ? AND nombre_conductor = ? AND vehiculo = ? AND tipo_viaje = ?', [formattedFecha, conductor, vehiculo, tipo_viaje], (error, results) => {
             if (error) {
                 console.error('Error al verificar traslados existentes:', error);
                 res.status(500).json({ message: 'Error al verificar traslados existentes' });
@@ -170,7 +208,7 @@ router.post('/traslados', (req, res) => {
                         valor_por_persona: valorPorPersona,
                     };
 
-                    mysqlConnection.query('INSERT INTO traslados SET ?', newTraslado, (error, result) => {
+                    sql.query('INSERT INTO traslados SET ?', newTraslado, (error, result) => {
                         if (error) {
                             console.error('Error al registrar traslado:', error);
                             res.status(500).json({ message: 'Error al registrar traslado' });
@@ -191,7 +229,7 @@ router.post('/traslados', (req, res) => {
                                 };
                             });
 
-                            mysqlConnection.query('INSERT INTO asistencia (id_traslado, id_trabajador, fecha, asistencia, comentario) VALUES ?', [asistenciaYComentarios.map(({ id_trabajador, fecha, asistencia, comentario }) => [id_traslado, id_trabajador, fecha, asistencia, comentario])], (error, result) => {
+                            sql.query('INSERT INTO asistencia (id_traslado, id_trabajador, fecha, asistencia, comentario) VALUES ?', [asistenciaYComentarios.map(({ id_trabajador, fecha, asistencia, comentario }) => [id_traslado, id_trabajador, fecha, asistencia, comentario])], (error, result) => {
                                 if (error) {
                                     console.error('Error al registrar asistencias y comentarios:', error);
                                     res.status(500).json({ message: 'Error al registrar asistencias y comentarios' });
@@ -212,12 +250,12 @@ router.post('/traslados', (req, res) => {
 router.delete('/traslados/:id', (req, res) => {
     const { id } = req.params;
 
-    mysqlConnection.query('DELETE FROM asistencia WHERE id_traslado = ?', [id], (error, result) => {
+    sql.query('DELETE FROM asistencia WHERE id_traslado = ?', [id], (error, result) => {
         if (error) {
             console.error('Error al eliminar asistencias:', error);
             res.status(500).json({ message: 'Error al eliminar asistencias' });
         } else {
-            mysqlConnection.query('DELETE FROM traslados WHERE id_traslado = ?', [id], (error, result) => {
+            sql.query('DELETE FROM traslados WHERE id_traslado = ?', [id], (error, result) => {
                 if (error) {
                     console.error('Error al eliminar traslado:', error);
                     res.status(500).json({ message: 'Error al eliminar traslado' });

@@ -1,5 +1,5 @@
 import express from 'express';
-import mysqlConnection from '../database/db.js';
+import sql from '../database/db.js';
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
@@ -17,7 +17,7 @@ router.post('/register/admin', async (req, res) => {
         };
 
         const query = 'INSERT INTO admin SET ?';
-        mysqlConnection.query(query, newUser, (error, result) => { // Cambiado de sql a query
+        sql.query(query, newUser, (error, result) => { // Cambiado de sql a query
             if (error) {
                 console.error('Error al registrar usuario:', error);
                 res.status(500).json({ message: 'Error al registrar usuario' });
@@ -34,7 +34,7 @@ router.post('/register/admin', async (req, res) => {
 // Registro de conductor
 router.post('/register/conductor', async (req, res) => {
     try {
-        const hashedPassword = bcrypt.hashSync(req.body.password, 10); // Cambiado a bcrypt.hashSync
+        const hashedPassword = bcrypt.hashSync(req.body.password, 10);
         const newUser = {
             nombre_completo: req.body.nombre_completo,
             telefono: req.body.telefono,
@@ -44,7 +44,7 @@ router.post('/register/conductor', async (req, res) => {
         };
 
         const query = 'INSERT INTO conductores SET ?';
-        mysqlConnection.query(query, newUser, (error, result) => { // Cambiado de sql a query
+        sql.query(query, newUser, (error, result) => { // Cambiado de sql a query
             if (error) {
                 console.error('Error al registrar conductor:', error);
                 res.status(500).json({ message: 'Error al registrar conductor' });
@@ -71,7 +71,7 @@ router.put('/edit/conductor/:id', async (req, res) => {
         };
 
         const query = 'UPDATE conductores SET ? WHERE id_conductor = ?';
-        mysqlConnection.query(query, [editUser, req.params.id], (error, result) => { // Cambiado de sql a query
+        sql.query(query, [editUser, req.params.id], (error, result) => { // Cambiado de sql a query
             if (error) {
                 console.error('Error al editar conductor:', error);
                 res.status(500).json({ message: 'Error al editar conductor' });
@@ -92,45 +92,45 @@ router.post('/login', async (req, res) => {
     const query1 = 'SELECT * FROM admin WHERE usuario = ?';
     const query2 = 'SELECT * FROM conductores WHERE usuario = ?';
     // primero revisamos si es admin
-    mysqlConnection.query(query1, [usuario], async (error, rows) => {
+    sql.query(query1, [usuario], async (error, rows) => {
         if (!error) {
             if (rows.length > 0) {
                 const admin = rows[0];
                 const validPassword = bcrypt.compareSync(password, admin.password);
                 if (validPassword) {
-                    const user = {
+                    const payload = {
                         id_admin: admin.id_admin,
                         nombre_completo: admin.nombre_completo,
                         usuario: admin.usuario,
                         role: 'admin'
                     }
-                    const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+                    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
                     console.log('Token generado:', accessToken);
-                    console.log('Usuario:', user);
+                    console.log('Usuario:', payload);
                     res.cookie('token', accessToken);
-                    return res.status(200).json({ message: 'Usuario autenticado', user: user, token: accessToken });
+                    return res.status(200).json({ message: 'Usuario autenticado', user: payload, token: accessToken });
                 } else {
                     res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
                 }
             } else {
                 // si no es admin, revisamos si es conductor
-                mysqlConnection.query(query2, [usuario], async (error, rows) => {
+                sql.query(query2, [usuario], async (error, rows) => {
                     if (!error) {
                         if (rows.length > 0) {
                             const conductor = rows[0];
                             const validPassword = bcrypt.compareSync(password, conductor.password);
                             if (validPassword) {
-                                const user = {
+                                const payload = {
                                     id_conductor: conductor.id_conductor,
                                     nombre_completo: conductor.nombre_completo,
                                     usuario: conductor.usuario,
                                     role: 'chofer'
                                 }
-                                const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+                                const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
                                 console.log('Token generado:', accessToken);
-                                console.log('Usuario:', user);
+                                console.log('Usuario:', payload);
                                 res.cookie('token', accessToken);
-                                return res.status(200).json({ message: 'Usuario autenticado', user: user, token: accessToken });
+                                return res.status(200).json({ message: 'Usuario autenticado', user: payload, token: accessToken });
                             } else {
                                 res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
                             }
@@ -147,8 +147,8 @@ router.post('/login', async (req, res) => {
         }
     });
 });
-// logout
 
+// logout
 router.get('/logout', (req, res) => {
     res.clearCookie('token');
     res.status(200).json({ message: 'Saliste correctamente' });

@@ -1,11 +1,11 @@
 import express from 'express'
-import mysqlConnection from '../database/db.js';
+import sql from '../database/db.js';
 
 const router = express.Router();
 
 // obtener los vehiculos
 router.get('/vehiculos', (req, res) => {
-    mysqlConnection.query('SELECT * FROM vehiculos', (error, rows) => {
+    sql.query('SELECT * FROM vehiculos', (error, rows) => {
         if (!error) {
             res.json(rows);
         } else {
@@ -17,7 +17,7 @@ router.get('/vehiculos', (req, res) => {
 // obtener vehiculo por id
 router.get('/vehiculos/:id_vehiculo', (req, res) => {
     const { id_vehiculo } = req.params;
-    mysqlConnection.query('SELECT * FROM vehiculos WHERE id_vehiculo = ?', [id_vehiculo], (error, rows) => {
+    sql.query('SELECT * FROM vehiculos WHERE id_vehiculo = ?', [id_vehiculo], (error, rows) => {
         if (!error) {
             res.json(rows);
         } else {
@@ -36,7 +36,7 @@ router.post('/vehiculos', (req, res) => {
     };
 
     const query = 'INSERT INTO vehiculos SET ?';
-    mysqlConnection.query(query, newVehiculo, (error, result) => {
+    sql.query(query, newVehiculo, (error, result) => {
         if (error) {
             console.error('Error al registrar vehiculo:', error);
             res.status(500).json({ message: 'Error al registrar vehiculo' });
@@ -57,7 +57,7 @@ router.put('/vehiculos/:id_vehiculo', (req, res) => {
     };
 
     const query = 'UPDATE vehiculos SET ? WHERE id_vehiculo = ?';
-    mysqlConnection.query(query, [updateVehiculo, id_vehiculo], (error, result) => {
+    sql.query(query, [updateVehiculo, id_vehiculo], (error, result) => {
         if (error) {
             console.error('Error al actualizar vehiculo:', error);
             res.status(500).json({ message: 'Error al actualizar vehiculo' });
@@ -70,7 +70,7 @@ router.put('/vehiculos/:id_vehiculo', (req, res) => {
 // eliminar vehiculo a
 router.delete('/vehiculos/:id_vehiculo', (req, res) => {
     const { id_vehiculo } = req.params;
-    mysqlConnection.query('DELETE FROM vehiculos WHERE id_vehiculo = ?', [id_vehiculo], (error, result) => {
+    sql.query('DELETE FROM vehiculos WHERE id_vehiculo = ?', [id_vehiculo], (error, result) => {
         if (error) {
             console.error('Error al eliminar vehiculo:', error);
             res.status(500).json({ message: 'Error al eliminar vehiculo' });
